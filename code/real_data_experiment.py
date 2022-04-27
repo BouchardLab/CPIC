@@ -166,27 +166,28 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, num_cv_folds, deco
                 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
                 # import pdb; pdb.set_trace()
-                PFPC = train_CPIC(beta, xdim, dim, mi_params, critic_params, baseline_params, num_epochs,
+                CPIC, _ = train_CPIC(beta, xdim, dim, mi_params, critic_params, baseline_params, num_epochs,
                                   train_dataloader, T=T_pi,
                                   signiture=args.config, deterministic=deterministic, init_weights=init_weights, lr=lr,
                                   num_early_stop=num_early_stop, device=device, beta1=beta1, beta2=beta2,
-                                  critic_params_YX=critic_params_YX).to(device)
+                                  critic_params_YX=critic_params_YX)
+                CPIC = CPIC.to(device)
                 # import pdb; pdb.set_trace()
 
                 # encode train data and test data via CPIC
-                X_train_cpic = [PFPC.encode(torch.from_numpy(Xi).to(torch.float).to(device)) for Xi in X_train_ctd]
+                X_train_cpic = [CPIC.encode(torch.from_numpy(Xi).to(torch.float).to(device)) for Xi in X_train_ctd]
                 X_train_cpic = [Xi.cpu().detach().numpy() for Xi in X_train_cpic]
                 # X_train_dca = [np.dot(Xi, init_weights) for Xi in X_train_ctd]
-                X_test_pfpc = PFPC.encode(torch.from_numpy(X_test_ctd).to(torch.float).to(device))
-                X_test_pfpc = X_test_pfpc.cpu().detach().numpy()
+                X_test_cpic = CPIC.encode(torch.from_numpy(X_test_ctd).to(torch.float).to(device))
+                X_test_cpic = X_test_cpic.cpu().detach().numpy()
                 # X_test_dca = np.dot(X_test_ctd, init_weights)
                 ### save encoded test data
 
                 for offset_idx in range(len(offset_vals)):
                     offset = offset_vals[offset_idx]
-                    r2_pfpc = linear_decode_r2(X_train_cpic, Y_train_ctd, X_test_pfpc, Y_test_ctd, decoding_window=decoding_window, offset=offset)
+                    r2_cpic = linear_decode_r2(X_train_cpic, Y_train_ctd, X_test_cpic, Y_test_ctd, decoding_window=decoding_window, offset=offset)
                     # r2_dca = linear_decode_r2(X_train_dca, Y_train_ctd, X_test_dca, Y_test_ctd, decoding_window=decoding_window, offset=offset)
-                    results[fold_idx, dim_idx, offset_idx, T_pi_idx] = r2_pfpc
+                    results[fold_idx, dim_idx, offset_idx, T_pi_idx] = r2_cpic
             print("fold_idx: {}, dim_idx: {}, R2: {}".format(fold_idx, dim_vals[dim_idx], results[fold_idx, dim_idx]))
             # import pdb; pdb.set_trace()
     return results
@@ -292,7 +293,7 @@ if __name__ == "__main__":
         weather = data_util.load_weather_data('/home/rui/Data/TEMP/temperature.csv')
         X, Y = weather, weather
         good_ts = None
-    if args_config == "ms_stochatic_infonce": 
+    if args.config == "ms_stochatic_infonce":
         ms = data_util.load_accel_data('/home/rui/Data/motion_sense/A_DeviceMotion_data/std_6/sub_19.csv')
         X, Y = ms, ms
         good_ts = None
@@ -328,4 +329,4 @@ if __name__ == "__main__":
 
         with open(saved_root + "/result_dim{}.pkl".format(ydim), "wb") as f:
             pickle.dump(result, f)
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
