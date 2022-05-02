@@ -131,7 +131,7 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, decoding_window,
     Y_train = Y[:n_train]
     Y_test = Y[n_train:]
 
-
+    # breakpoint()
 
     if Kernel is not None:
         X_train = [Kernel(Xi) for Xi in X_train]
@@ -304,6 +304,7 @@ if __name__ == "__main__":
         ms = data_util.load_accel_data('/home/rui/Data/motion_sense/A_DeviceMotion_data/std_6/sub_19.csv')
         X, Y = ms, ms
         good_ts = None
+        standardize_Y = False
 
     T_pi_vals = np.array(Ts)
     offsets = np.array([5, 10, 15])
@@ -331,7 +332,7 @@ if __name__ == "__main__":
         critic_params_YX = None
         result = run_analysis_cpic(X, Y, T_pi_vals, dim_vals=[ydim], offset_vals=offsets, decoding_window=win,
                           n_init=n_init, verbose=True, Kernel=Kernel, xdim=xdim, beta=beta, beta1=beta1, beta2=beta2,
-                          critic_params=critic_params, critic_params_YX=critic_params_YX, good_ts=good_ts, standardize_Y=True)
+                          critic_params=critic_params, critic_params_YX=critic_params_YX, good_ts=good_ts, standardize_Y=False)
 
         with open(saved_root + "/result_dim{}_standard.pkl".format(ydim), "wb") as f:
             pickle.dump(result, f)
