@@ -295,7 +295,7 @@ if __name__ == "__main__":
         HC = data_util.load_kording_paper_data('/home/rui/Data/HC/example_data_hc.pickle')
         X, Y = HC['neural'], HC['loc']
         good_ts = 22000
-    if args.config == "temp_stochastic_infonce" or "temp_stochastic_infornce_alt":
+    if args.config == "temp_stochastic_infonce" or args.config == "temp_stochastic_infornce_alt":
         # weather = data_util.load_weather_data('/home/fan/Data/TEMP/temperature.csv')
         weather = data_util.load_weather_data('/home/rui/Data/TEMP/temperature.csv')
         X, Y = weather, weather
