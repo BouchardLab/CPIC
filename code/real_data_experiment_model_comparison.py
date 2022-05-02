@@ -97,9 +97,9 @@ def linear_decode_r2(X_train, Y_train, X_test, Y_test, decoding_window=1, offset
     return r2
 
 
-def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, num_cv_folds, decoding_window,
+def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, decoding_window,
                  n_init=1, verbose=False, Kernel=None, xdim=None, beta=1e-3, beta1=1, beta2=0, critic_params=None,
-                 critic_params_YX=None, good_ts=None):
+                 critic_params_YX=None, good_ts=None, standardize_Y=False, train_test_ratio=0.8):
     """
 
     :param X:
@@ -107,14 +107,13 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, num_cv_folds, deco
     :param T_pi_vals: window size for DCA and CPIC
     :param dim_vals: compressed dimension
     :param offset_vals: Temporal offsets for prediction (0 is same-time prediction)
-    :param num_cv_folds:
     :param decoding_window: Number of time samples of X to use for predicting Y (should be odd). Centered around
         offset value.
     :param n_init: the number of initialization for DCA
     :param verbose:
     :return:
     """
-    results_size = (num_cv_folds, len(dim_vals), len(offset_vals), len(T_pi_vals))
+    results_size = (len(dim_vals), len(offset_vals), len(T_pi_vals))
     results = np.zeros(results_size)
     min_std = 1e-6
     good_cols = (X.std(axis=0) > min_std)
@@ -126,77 +125,84 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, num_cv_folds, deco
     if Kernel is not None:
         xdim = int(xdim + xdim * (xdim + 1) / 2)  # polynomial
 
-    # loop over CV folds
-    cv = CrossValidate(X, Y, num_cv_folds, stack=False)
+    n = X.shape[0]
+    n_train = int(n * train_test_ratio)
+    X_train = X[:n_train]
+    X_test = X[n_train:]
+    Y_train = Y[:n_train]
+    Y_test = Y[n_train:]
 
-    for X_train, X_test, Y_train, Y_test, fold_idx in cv:
-        if verbose:
-            print("fold", fold_idx + 1, "of", num_cv_folds)
 
-        if Kernel is not None:
-            X_train = [Kernel(Xi) for Xi in X_train]
-            X_test = Kernel(X_test)
 
-        # mean-center X and Y
-        X_mean = np.concatenate(X_train).mean(axis=0, keepdims=True)
-        X_train_ctd = [Xi - X_mean for Xi in X_train]
-        X_test_ctd = X_test - X_mean
+    if Kernel is not None:
+        X_train = [Kernel(Xi) for Xi in X_train]
+        X_test = Kernel(X_test)
+
+    # mean-center X and Y
+    X_mean = np.concatenate(X_train).mean(axis=0, keepdims=True)
+    X_train_ctd = [Xi - X_mean for Xi in X_train]
+    X_train_ctd = [np.stack(X_train_ctd)]
+    X_test_ctd = X_test - X_mean
+    if standardize_Y:
         Y_mean = np.concatenate(Y_train).mean(axis=0, keepdims=True)
         Y_train_ctd = [Yi - Y_mean for Yi in Y_train]
         Y_test_ctd = Y_test - Y_mean
+        Y_train = Y_train_ctd
+        Y_test = Y_test_ctd
+    Y_train = [np.stack(Y_train)]
 
-        # loop over dimensionalities
-        for dim_idx in range(len(dim_vals)):
-            dim = dim_vals[dim_idx]
-            if verbose:
-                print("dim", dim_idx + 1, "of", len(dim_vals))
+    # loop over dimensionalities
+    for dim_idx in range(len(dim_vals)):
+        dim = dim_vals[dim_idx]
+        if verbose:
+            print("dim", dim_idx + 1, "of", len(dim_vals))
 
-            # loop over T_pi vals
-            for T_pi_idx in range(len(T_pi_vals)):
-                T_pi = T_pi_vals[T_pi_idx]
-                critic_params = {"x_dim": T_pi * ydim, "y_dim": T_pi * ydim, "hidden_dim": hidden_dim}
-                critic_params_YX = {"x_dim": T_pi * ydim, "y_dim": T_pi * xdim, "hidden_dim": hidden_dim}
-                # train data
-                if do_dca_init:
-                    breakpoint()
-                    init_weights = DCA_init(np.concatenate(X_train_ctd, axis=0), T=T_pi, d=dim, n_init=n_init)
-                else:
-                    init_weights = None
+        # loop over T_pi vals
+        for T_pi_idx in range(len(T_pi_vals)):
+            T_pi = T_pi_vals[T_pi_idx]
+            critic_params = {"x_dim": T_pi * ydim, "y_dim": T_pi * ydim, "hidden_dim": hidden_dim}
+            critic_params_YX = {"x_dim": T_pi * ydim, "y_dim": T_pi * xdim, "hidden_dim": hidden_dim}
+            # train data
+            if do_dca_init:
+                # breakpoint()
+                init_weights = DCA_init(np.concatenate(X_train_ctd, axis=0), T=T_pi, d=dim, n_init=n_init)
+            else:
+                init_weights = None
 
-                train_data = PastFutureDataset(X_train_ctd, window_size=T_pi)
-                train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+            train_data = PastFutureDataset(X_train_ctd, window_size=T_pi)
+            train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-                # import pdb; pdb.set_trace()
-                CPIC, _ = train_CPIC(beta, xdim, dim, mi_params, critic_params, baseline_params, num_epochs,
-                                  train_dataloader, T=T_pi,
-                                  signiture=args.config, deterministic=deterministic, init_weights=init_weights, lr=lr,
-                                  num_early_stop=num_early_stop, device=device, beta1=beta1, beta2=beta2,
-                                  critic_params_YX=critic_params_YX)
-                CPIC = CPIC.to(device)
-                # import pdb; pdb.set_trace()
-
-                # encode train data and test data via CPIC
-                X_train_cpic = [CPIC.encode(torch.from_numpy(Xi).to(torch.float).to(device)) for Xi in X_train_ctd]
-                X_train_cpic = [Xi.cpu().detach().numpy() for Xi in X_train_cpic]
-                # X_train_dca = [np.dot(Xi, init_weights) for Xi in X_train_ctd]
-                X_test_cpic = CPIC.encode(torch.from_numpy(X_test_ctd).to(torch.float).to(device))
-                X_test_cpic = X_test_cpic.cpu().detach().numpy()
-                # X_test_dca = np.dot(X_test_ctd, init_weights)
-                ### save encoded test data
-
-                for offset_idx in range(len(offset_vals)):
-                    offset = offset_vals[offset_idx]
-                    r2_cpic = linear_decode_r2(X_train_cpic, Y_train_ctd, X_test_cpic, Y_test_ctd, decoding_window=decoding_window, offset=offset)
-                    # r2_dca = linear_decode_r2(X_train_dca, Y_train_ctd, X_test_dca, Y_test_ctd, decoding_window=decoding_window, offset=offset)
-                    results[fold_idx, dim_idx, offset_idx, T_pi_idx] = r2_cpic
-            print("fold_idx: {}, dim_idx: {}, R2: {}".format(fold_idx, dim_vals[dim_idx], results[fold_idx, dim_idx]))
             # import pdb; pdb.set_trace()
+            CPIC, _ = train_CPIC(beta, xdim, dim, mi_params, critic_params, baseline_params, num_epochs,
+                              train_dataloader, T=T_pi,
+                              signiture=args.config, deterministic=deterministic, init_weights=init_weights, lr=lr,
+                              num_early_stop=num_early_stop, device=device, beta1=beta1, beta2=beta2,
+                              critic_params_YX=critic_params_YX)
+            CPIC = CPIC.to(device)
+            # import pdb; pdb.set_trace()
+
+            # encode train data and test data via CPIC
+            X_train_cpic = [CPIC.encode(torch.from_numpy(Xi).to(torch.float).to(device)) for Xi in X_train_ctd]
+            X_train_cpic = [Xi.cpu().detach().numpy() for Xi in X_train_cpic]
+            # X_train_dca = [np.dot(Xi, init_weights) for Xi in X_train_ctd]
+            X_test_cpic = CPIC.encode(torch.from_numpy(X_test_ctd).to(torch.float).to(device))
+            X_test_cpic = X_test_cpic.cpu().detach().numpy()
+            # X_test_dca = np.dot(X_test_ctd, init_weights)
+            ### save encoded test data
+
+            for offset_idx in range(len(offset_vals)):
+                offset = offset_vals[offset_idx]
+                r2_cpic = linear_decode_r2(X_train_cpic, Y_train, X_test_cpic, Y_test, decoding_window=decoding_window, offset=offset)
+                # r2_dca = linear_decode_r2(X_train_dca, Y_train, X_test_dca, Y_test, decoding_window=decoding_window, offset=offset)
+                results[dim_idx, offset_idx, T_pi_idx] = r2_cpic
+        print("dim_idx: {}, R2: {}".format(dim_vals[dim_idx], results[dim_idx]))
+        # import pdb; pdb.set_trace()
     return results
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='CPIC for real data.')
-    parser.add_argument('--config', type=str, default="m1_stochastic_infonce")
+    parser.add_argument('--config', type=str, default="m1_stochastic_infonce_alt")
     parser.add_argument('--model', type=str, default="CPIC")
     args = parser.parse_args()
     if args.model == "CPIC":
@@ -238,6 +244,7 @@ if __name__ == "__main__":
 
     cfg = myconf()
     cfg.read(config_file)
+
     RESULTS_FILENAME = cfg.get('User', 'RESULTS_FILENAME')
     saved_root = cfg.get('User', 'saved_root')
     if not os.path.exists(saved_root):
@@ -303,14 +310,13 @@ if __name__ == "__main__":
     offsets = np.array([5, 10, 15])
 
     win = 3
-    n_cv = 5
     n_init = 5
 
     # rewrite ydim
     # m1_ydims = np.array([5,10,20,30])
     # hc_ydims = np.array([5,10,15,25])
     # temp_ydims = np.array([3, 4, 5, 6])
-    ydims = np.array([5])
+    # ydims = np.array([5])
     if kernel == "Linear":
         Kernel = None
     elif kernel == "Polynomial":
@@ -324,10 +330,10 @@ if __name__ == "__main__":
         # critic_params_YX = {"x_dim": T * ydim, "y_dim": T * xdim, "hidden_dim": hidden_dim}
         critic_params = None
         critic_params_YX = None
-        result = run_analysis_cpic(X, Y, T_pi_vals, dim_vals=[ydim], offset_vals=offsets, num_cv_folds=n_cv, decoding_window=win,
+        result = run_analysis_cpic(X, Y, T_pi_vals, dim_vals=[ydim], offset_vals=offsets, decoding_window=win,
                           n_init=n_init, verbose=True, Kernel=Kernel, xdim=xdim, beta=beta, beta1=beta1, beta2=beta2,
-                          critic_params=critic_params, critic_params_YX=critic_params_YX, good_ts=good_ts)
+                          critic_params=critic_params, critic_params_YX=critic_params_YX, good_ts=good_ts, standardize_Y=True)
 
-        with open(saved_root + "/result_dim{}.pkl".format(ydim), "wb") as f:
+        with open(saved_root + "/result_dim{}_standard.pkl".format(ydim), "wb") as f:
             pickle.dump(result, f)
         # import pdb; pdb.set_trace()
