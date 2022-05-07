@@ -295,12 +295,12 @@ if __name__ == "__main__":
         HC = data_util.load_kording_paper_data('/home/rui/Data/HC/example_data_hc.pickle')
         X, Y = HC['neural'], HC['loc']
         good_ts = 22000
-    if args.config == "temp_stochastic_infonce" or "temp_stochastic_infornce_alt":
+    if args.config == "temp_stochastic_infonce" or args.config == "temp_stochastic_infornce_alt":
         # weather = data_util.load_weather_data('/home/fan/Data/TEMP/temperature.csv')
         weather = data_util.load_weather_data('/home/rui/Data/TEMP/temperature.csv')
         X, Y = weather, weather
         good_ts = None
-    if args.config == "ms_stochatic_infonce" or "ms_stochastic_infornce_alt":
+    if args.config == "ms_stochatic_infonce" or args.config == "ms_stochastic_infornce_alt":
         ms = data_util.load_accel_data('/home/rui/Data/motion_sense/A_DeviceMotion_data/std_6/sub_19.csv')
         X, Y = ms, ms
         good_ts = None
