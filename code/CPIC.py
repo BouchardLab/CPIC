@@ -251,7 +251,8 @@ def estimate_mutual_information(estimator, x, y, critic_fn=None, baseline_fn=Non
 
 class CPIC(nn.Module):
     def __init__(self, xdim, ydim, mi_params, critic_params, baseline_params, T=4, beta=1e-3, beta1=1, beta2=1, hidden_dim=256,
-                 deterministic=False, init_weights=None, device='cuda:0', critic_params_YX=None, predictive_space="latent"):
+                 deterministic=False, init_weights=None, device='cuda:0', critic_params_YX=None, predictive_space="latent",
+                 regularization_weight=0):
         super(CPIC, self).__init__()
 
         self.predictive_space = predictive_space
@@ -280,6 +281,7 @@ class CPIC(nn.Module):
             self.critic_YX.to(device)
         self.mi_params = mi_params
         self.device=device
+        self.regularization_weight=regularization_weight
 
     def forward(self, x_past, x_future, debug=False):
         batch_size = x_past.shape[0]
@@ -317,6 +319,10 @@ class CPIC(nn.Module):
             L = self.beta * I_compress_bound - self.beta1 * I_predictive_bound - self.beta2 * I_YX_bound
         else:
             L = self.beta * I_compress_bound - self.beta1 * I_predictive_bound
+
+        if self.regularization_weight > 0:
+            weight = self.encoder._mean.weight
+            L = L + self.regularization_weight * torch.sum(torch.abs(weight)) / torch.norm(weight)
         # print(debug)
         if debug:
             estimate_mutual_information(self.mi_params['estimator_compress'], x_past, encoded_past_reshaped,
@@ -338,10 +344,10 @@ def DCA_init(X, T, d, n_init=1, rng_or_seed=None):
 
 def train_CPIC(beta, xdim, ydim, mi_params, critic_params, baseline_params, num_epochs, train_loader, T=4, signiture=22,
                deterministic=False, init_weights=None, num_early_stop=0, device="cuda:0", lr=1e-4, beta1=1, beta2=0,
-               critic_params_YX=None, predictive_space="latent"):
+               critic_params_YX=None, predictive_space="latent", regularization_weight=0):
     model = CPIC(xdim, ydim, mi_params, critic_params, baseline_params, T=T, beta=beta, beta1=beta1, beta2=beta2,
                  deterministic=deterministic, init_weights=init_weights, device=device, critic_params_YX=critic_params_YX,
-                 predictive_space=predictive_space)
+                 predictive_space=predictive_space, regularization_weight=regularization_weight)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     if init_weights is not None:
         do_init = True
