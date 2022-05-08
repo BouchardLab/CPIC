@@ -323,6 +323,9 @@ class CPIC(nn.Module):
         if self.regularization_weight > 0:
             weight = self.encoder._mean.weight
             L = L + self.regularization_weight * torch.sum(torch.abs(weight)) / torch.norm(weight)
+            # L = L + self.regularization_weight * torch.norm(weight, p='nuc') / torch.norm(weight)
+            print(torch.sum(torch.abs(weight)) / torch.norm(weight))
+            print(weight)
         # print(debug)
         if debug:
             estimate_mutual_information(self.mi_params['estimator_compress'], x_past, encoded_past_reshaped,

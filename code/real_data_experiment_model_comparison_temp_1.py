@@ -99,7 +99,7 @@ def linear_decode_r2(X_train, Y_train, X_test, Y_test, decoding_window=1, offset
 
 def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, decoding_window,
                  n_init=1, verbose=False, Kernel=None, xdim=None, beta=1e-3, beta1=1, beta2=0, critic_params=None,
-                 critic_params_YX=None, good_ts=None, standardize_Y=False, train_test_ratio=0.8, regularization_weight=0):
+                 critic_params_YX=None, good_ts=None, standardize_Y=False, train_test_ratio=0.8):
     """
     :param X:
     :param Y:
@@ -176,7 +176,7 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, decoding_window,
                               train_dataloader, T=T_pi,
                               signiture=args.config, deterministic=deterministic, init_weights=init_weights, lr=lr,
                               num_early_stop=num_early_stop, device=device, beta1=beta1, beta2=beta2,
-                              critic_params_YX=critic_params_YX, regularization_weight=regularization_weight)
+                              critic_params_YX=critic_params_YX, regularization_weight=0)
             CPIC = CPIC.to(device)
             # import pdb; pdb.set_trace()
 
@@ -201,7 +201,7 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, decoding_window,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='CPIC for real data.')
-    parser.add_argument('--config', type=str, default="hc_stochastic_infonce_alt")
+    parser.add_argument('--config', type=str, default="temp_stochastic_infonce_alt")
     parser.add_argument('--model', type=str, default="CPIC")
     args = parser.parse_args()
     if args.model == "CPIC":
@@ -209,34 +209,37 @@ if __name__ == "__main__":
     if args.model == "PFPC_RC":
         from PFPC_RC import PastFutureDataset, train_CPIC, DCA_init, Polynomial_expand
     if args.config == 'm1_stochastic_infonce':
-        config_file = 'config/config_m1_stochastic_infonce.ini'
+        config_file = '../config/config_m1_stochastic_infonce.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'm1_stochastic_infonce_alt':
-        config_file = 'config/config_m1_stochastic_infonce_alt.ini'
+        config_file = '../config/config_m1_stochastic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'm1_deterministic_infonce_alt':
-        config_file = 'config/config_m1_deterministic_infonce_alt.ini'
+        config_file = '../config/config_m1_deterministic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'hc_stochastic_infonce':
-        config_file = 'config/config_hc_stochastic_infonce.ini'
+        config_file = '../config/config_hc_stochastic_infonce.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'hc_stochastic_infonce_alt':
-        config_file = 'config/config_hc_stochastic_infonce_alt.ini'
+        config_file = '../config/config_hc_stochastic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'hc_deterministic_infonce_alt':
-        config_file = 'config/config_hc_deterministic_infonce_alt.ini'
+        config_file = '../config/config_hc_deterministic_infonce_alt.ini'
+        ydims = np.array([5]).astype(int)
+    elif args.config == 'temp_deterministic_infonce_alt':
+        config_file = '../config/config_temp_deterministic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'temp_stochastic_infonce':
-        config_file = 'config/config_temp_stochastic_infonce.ini'
+        config_file = '../config/config_temp_stochastic_infonce.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'temp_stochastic_infonce_alt':
-        config_file = 'config/config_temp_stochastic_infonce_alt.ini'
+        config_file = '../config/config_temp_stochastic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'ms_stochastic_infonce':
-        config_file = 'config/config_ms_stochastic_infonce.ini'
+        config_file = '../config/config_ms_stochastic_infonce.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'ms_stochastic_infonce_alt':
-        config_file = 'config/config_ms_stochastic_infonce_alt.ini'
+        config_file = '../config/config_ms_stochastic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
     else:
         raise ValueError("{} has not been implemented!".format(args.config))
@@ -286,33 +289,32 @@ if __name__ == "__main__":
     if args.config == "m1_stochastic_infonce" or args.config == "m1_stochastic_infonce_alt" \
             or args.config == "m1_deterministic_infonce_alt":
         # M1 = data_util.load_sabes_data('/home/fan/Data/M1/indy_20160627_01.mat')
-        M1 = data_util.load_sabes_data('/home/rui/Data/M1/indy_20160627_01.mat')
+        M1 = data_util.load_sabes_data('/home/luotianyi/eclipse_workspace_2/20220426_nips2022_project_real_dataset_code_with_rui/data/M1/indy_20160627_01.mat')
         X, Y = M1['M1'], M1['cursor']
         good_ts = None
-        standardize_Y = False
     if args.config == "hc_stochastic_infonce" or args.config == "hc_stochastic_infonce_alt"\
             or args.config == "hc_deterministic_infonce_alt":
         # HC = data_util.load_kording_paper_data('/home/fan/Data/HC/example_data_hc.pickle')
-        HC = data_util.load_kording_paper_data('/home/rui/Data/HC/example_data_hc.pickle')
+        HC = data_util.load_kording_paper_data('/home/luotianyi/eclipse_workspace_2/20220426_nips2022_project_real_dataset_code_with_rui/data/HC/example_data_hc.pickle')
         X, Y = HC['neural'], HC['loc']
         good_ts = 22000
-        # good_ts = None
-        standardize_Y = False
-    if args.config == "temp_stochastic_infonce" or args.config == "temp_stochastic_infonce_alt":
+    if args.config == "temp_stochastic_infonce" or args.config == "temp_stochastic_infonce_alt"\
+            or args.config == "temp_deterministic_infonce_alt":
         # weather = data_util.load_weather_data('/home/fan/Data/TEMP/temperature.csv')
+        # weather = data_util.load_weather_data('/home/luotianyi/eclipse_workspace_2/20220426_nips2022_project_real_dataset_code_with_rui/data/TEMP/temperature.csv')
         weather = data_util.load_weather_data('/home/rui/Data/TEMP/temperature.csv')
         X, Y = weather, weather
         good_ts = None
-        standardize_Y = True
-    if args.config == "ms_stochatic_infonce" or args.config == "ms_stochastic_infonce_alt":
-        ms = data_util.load_accel_data('/home/rui/Data/motion_sense/A_DeviceMotion_data/std_6/sub_19.csv')
+    if args.config == "ms_stochatic_infonce" or args.config == "ms_stochastic_infornce_alt":
+        ms = data_util.load_accel_data('/home/luotianyi/eclipse_workspace_2/20220426_nips2022_project_real_dataset_code_with_rui/data/motion_sense/A_DeviceMotion_data/std_6/sub_19.csv')
         X, Y = ms, ms
         good_ts = None
-        standardize_Y = True
+        standardize_Y = False
 
     T_pi_vals = np.array(Ts)
     offsets = np.array([5, 10, 15])
 
+    #teperature
     win = 3
     n_init = 5
 
@@ -334,11 +336,9 @@ if __name__ == "__main__":
         # critic_params_YX = {"x_dim": T * ydim, "y_dim": T * xdim, "hidden_dim": hidden_dim}
         critic_params = None
         critic_params_YX = None
-        regularzation_weight = 0
         result = run_analysis_cpic(X, Y, T_pi_vals, dim_vals=[ydim], offset_vals=offsets, decoding_window=win,
                           n_init=n_init, verbose=True, Kernel=Kernel, xdim=xdim, beta=beta, beta1=beta1, beta2=beta2,
-                          critic_params=critic_params, critic_params_YX=critic_params_YX, good_ts=good_ts, standardize_Y=standardize_Y,
-                          regularization_weight=regularzation_weight)
+                          critic_params=critic_params, critic_params_YX=critic_params_YX, good_ts=good_ts, standardize_Y=False)
 
         with open(saved_root + "/result_dim{}_standard.pkl".format(ydim), "wb") as f:
             pickle.dump(result, f)
