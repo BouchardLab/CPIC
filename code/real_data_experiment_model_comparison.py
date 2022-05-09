@@ -232,11 +232,17 @@ if __name__ == "__main__":
     elif args.config == 'temp_stochastic_infonce_alt':
         config_file = 'config/config_temp_stochastic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
+    elif args.config == 'temp_deterministic_infonce_alt':
+        config_file = 'config/config_temp_deterministic_infonce_alt.ini'
+        ydims = np.array([5]).astype(int)
     elif args.config == 'ms_stochastic_infonce':
         config_file = 'config/config_ms_stochastic_infonce.ini'
         ydims = np.array([5]).astype(int)
     elif args.config == 'ms_stochastic_infonce_alt':
         config_file = 'config/config_ms_stochastic_infonce_alt.ini'
+        ydims = np.array([5]).astype(int)
+    elif args.config == 'ms_deterministic_infonce_alt':
+        config_file = 'config/config_ms_deterministic_infonce_alt.ini'
         ydims = np.array([5]).astype(int)
     else:
         raise ValueError("{} has not been implemented!".format(args.config))
@@ -298,13 +304,15 @@ if __name__ == "__main__":
         good_ts = 22000
         # good_ts = None
         standardize_Y = False
-    if args.config == "temp_stochastic_infonce" or args.config == "temp_stochastic_infonce_alt":
+    if args.config == "temp_stochastic_infonce" or args.config == "temp_stochastic_infonce_alt"\
+            or args.config == "temp_deterministic_infonce_alt":
         # weather = data_util.load_weather_data('/home/fan/Data/TEMP/temperature.csv')
         weather = data_util.load_weather_data('/home/rui/Data/TEMP/temperature.csv')
         X, Y = weather, weather
         good_ts = None
         standardize_Y = True
-    if args.config == "ms_stochatic_infonce" or args.config == "ms_stochastic_infonce_alt":
+    if args.config == "ms_stochatic_infonce" or args.config == "ms_stochastic_infonce_alt"\
+            or args.config == "ms_deterministic_infonce_alt":
         ms = data_util.load_accel_data('/home/rui/Data/motion_sense/A_DeviceMotion_data/std_6/sub_19.csv')
         X, Y = ms, ms
         good_ts = None
