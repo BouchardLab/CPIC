@@ -2,7 +2,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 
-num_init = 10
+num_init = 100
 
 # collect the CPIC data.
 R2_CPICs = list()
@@ -99,10 +99,10 @@ if __name__ == "__main__":
 
     fig = plt.figure(figsize=(5,5))
     # plt.plot(snr_vals, best_R2_DCAs, color="black", label="DCA")
-    plt.plot(snr_vals, R2_CPICs_obs_opt, color="red", linestyle="dashed", label="CPIC(O))")
-    plt.plot(snr_vals, R2_CPICs_opt, color="red", label="CPIC(L)")
-    plt.plot(snr_vals, R2_CPICs_det_obs_opt, color="blue", linestyle="dashed", label="CPIC_det(O)")
-    plt.plot(snr_vals, R2_CPICs_det_opt, color="blue", label="CPIC_det(L)")
+    plt.plot(snr_vals, R2_CPICs_obs_opt, color="red", linestyle="dashed", label="Stochastic CPIC(O))")
+    plt.plot(snr_vals, R2_CPICs_opt, color="red", label="Stochastic CPIC(L)")
+    plt.plot(snr_vals, R2_CPICs_det_obs_opt, color="blue", linestyle="dashed", label="Deterministic CPIC(O)")
+    plt.plot(snr_vals, R2_CPICs_det_opt, color="blue", label="Deterministic CPIC(L)")
     # plt.scatter(snr_vals, best_R2_DCAs)
     plt.xscale('log')
     plt.xlabel('Signal-to-noise ratio (SNR)', fontsize=18)
@@ -118,16 +118,16 @@ if __name__ == "__main__":
     # plt.plot(snr_vals, R2_DCAs_mean, color="black", label="DCA")
     # plt.errorbar(snr_vals, R2_DCAs_mean, capsize=4, elinewidth=3, alpha=0.7, yerr=R2_DCAs_std,
     #              c="black")
-    plt.plot(snr_vals, R2_CPICs_obs_mean, linestyle="dashed", color="red", label="CPIC(O)")
+    plt.plot(snr_vals, R2_CPICs_obs_mean, linestyle="dashed", color="red", label="Stochastic CPIC(O)")
     # plt.errorbar(snr_vals, R2_CPICs_obs_mean, capsize=4, elinewidth=3, alpha=0.7, yerr=R2_CPICs_obs_std,
     #              c="red")
-    plt.plot(snr_vals, R2_CPICs_mean, color="red", label="CPIC(L)")
+    plt.plot(snr_vals, R2_CPICs_mean, color="red", label="Stochastic CPIC(L)")
     # plt.errorbar(snr_vals, R2_CPICs_mean, capsize=4, elinewidth=3, alpha=0.7, yerr=R2_CPICs_std,
     #              c="red")
-    plt.plot(snr_vals, R2_CPICs_det_obs_mean, linestyle="dashed", color="blue", label="CPIC_det(O)")
+    plt.plot(snr_vals, R2_CPICs_det_obs_mean, linestyle="dashed", color="blue", label="Deterministic CPIC(O)")
     # plt.errorbar(snr_vals, R2_CPICs_det_obs_mean, capsize=4, elinewidth=3, alpha=0.7, yerr=R2_CPICs_det_obs_std,
     #              c="blue")
-    plt.plot(snr_vals, R2_CPICs_det_mean, color="blue", label="CPIC_det(L)")
+    plt.plot(snr_vals, R2_CPICs_det_mean, color="blue", label="Deterministic CPIC(L)")
     # plt.errorbar(snr_vals, R2_CPICs_det_mean, capsize=4, elinewidth=3, alpha=0.7, yerr=R2_CPICs_det_std,
     #              c="blue")
     plt.xscale('log')

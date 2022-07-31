@@ -171,8 +171,7 @@ if __name__ == "__main__":
             X_pfpc_trans = inferred_pfpc_trials[i]
             max_2norm = max_2norms[i]
             plot_latent_trials(X_dynamics, X_pca_trans, X_dca_trans, X_pfpc_trans, num_vis, snr_val=snr_val,
-                               save_dir=saved_root, plot_lorenz_func=plot_lorenz_3d_colored, saved_root=saved_root,
-                               max_2norm=max_2norm)
+                               save_dir=saved_root, plot_lorenz_func=plot_lorenz_3d_colored, max_2norm=max_2norm)
 
         saved_root = "res/lorenz_stochastic_infonce_exploration"
         with open(saved_root + "/inferred_trials.pkl", "rb") as f:
@@ -187,7 +186,7 @@ if __name__ == "__main__":
             X_pfpc_trans = inferred_pfpc_trials[i]
             max_2norm = max_2norms[i]
             plot_latent_trials(X_dynamics, X_pca_trans, X_dca_trans, X_pfpc_trans, num_vis, snr_val=snr_val,
-                               save_dir=saved_root, plot_lorenz_func=plot_lorenz_3d_colored, saved_root=saved_root,
+                               save_dir=saved_root, plot_lorenz_func=plot_lorenz_3d_colored,
                                max_2norm=max_2norm)
 
     import pdb; pdb.set_trace()

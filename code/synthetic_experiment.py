@@ -73,7 +73,8 @@ def plot_latent_trials(X_dynamics, X_pca_trans=None, X_dca_trans=None, X_CPIC_tr
 
     # import matplotlib as mpl
     fig, ax = plt.subplots()
-    plt.colorbar(p, ax=ax)
+    cbar = plt.colorbar(p, ax=ax)
+    cbar.ax.tick_params(labelsize=15)
     ax.remove()
     plt.savefig(save_dir + "/snr_{}_cbar.png".format(snr_val))
     plt.close(fig)
