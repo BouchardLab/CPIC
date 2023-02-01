@@ -157,7 +157,7 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, num_cv_folds, deco
                 critic_params = {"x_dim": T_pi * ydim, "y_dim": T_pi * ydim, "hidden_dim": hidden_dim}
                 critic_params_YX = {"x_dim": T_pi * ydim, "y_dim": T_pi * xdim, "hidden_dim": hidden_dim}
                 # train data
-                if do_dca_init:
+                if do_dca_init and linear_encoding:
                     init_weights = DCA_init(np.concatenate(X_train_ctd, axis=0), T=T_pi, d=dim, n_init=n_init)
                 else:
                     init_weights = None
@@ -165,14 +165,13 @@ def run_analysis_cpic(X, Y, T_pi_vals, dim_vals, offset_vals, num_cv_folds, deco
                 train_data = PastFutureDataset(X_train_ctd, window_size=T_pi)
                 train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
 
-                # import pdb; pdb.set_trace()
                 CPIC, _ = train_CPIC(beta, xdim, dim, mi_params, critic_params, baseline_params, num_epochs,
                                   train_dataloader, T=T_pi,
-                                  signiture=args.config, deterministic=deterministic, init_weights=init_weights, lr=lr,
-                                  num_early_stop=num_early_stop, device=device, beta1=beta1, beta2=beta2,
-                                  critic_params_YX=critic_params_YX)
+                                  signiture=args.config, deterministic=deterministic, linear_encoding=linear_encoding,
+                                  init_weights=init_weights, lr=lr, num_early_stop=num_early_stop, device=device,
+                                  beta1=beta1, beta2=beta2, critic_params_YX=critic_params_YX)
                 CPIC = CPIC.to(device)
-                # import pdb; pdb.set_trace()
+                CPIC.eval()
 
                 # encode train data and test data via CPIC
                 X_train_cpic = [CPIC.encode(torch.from_numpy(Xi).to(torch.float).to(device)) for Xi in X_train_ctd]
@@ -197,6 +196,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='CPIC for real data.')
     parser.add_argument('--config', type=str, default="m1_stochastic_infonce")
     parser.add_argument('--model', type=str, default="CPIC")
+    parser.add_argument('--nonlinear_encoding', action='store_true')
     args = parser.parse_args()
     if args.model == "CPIC":
         from CPIC import PastFutureDataset, train_CPIC, DCA_init, Polynomial_expand
@@ -247,12 +247,9 @@ if __name__ == "__main__":
     beta1 = cfg.getfloat('Hyperparameters', 'beta1')
     beta2 = cfg.getfloat('Hyperparameters', 'beta2')
     xdim = cfg.getint('Hyperparameters', 'xdim')
-    # ydim = cfg.getint('Hyperparameters', 'ydim')
-    # T = cfg.getint('Hyperparameters', 'T')
     Ts = cfg.get('Hyperparameters', 'T')
     Ts = Ts.split(' ')
     Ts = [int(T) for T in Ts]
-    # import pdb; pdb.set_trace()
     hidden_dim = cfg.getint('Hyperparameters', 'hidden_dim')
 
     estimator_compress = cfg.get('Hyperparameters', 'estimator_compress')
@@ -316,6 +313,11 @@ if __name__ == "__main__":
         Kernel = Polynomial_expand
     else:
         raise ValueError("This kernel is not available.")
+
+    if args.nonlinear_encoding:
+        linear_encoding=False
+    else:
+        linear_encoding=True
 
     for ydim in ydims:
         # rewrite critic_params

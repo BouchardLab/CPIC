@@ -96,10 +96,13 @@ class UnnormalizedBaseline(nn.Module):
 
 
 class StructuredEncoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim, T=4, n_layers=1, activation='relu', deterministic=False, device="cuda:0"):
+    def __init__(self, input_dim, hidden_dim, output_dim, T=4, n_layers=1, activation='relu', deterministic=False, device="cuda:0", linear_encoding=True):
         super(StructuredEncoder, self).__init__()
         self.deterministic = deterministic
-        self._mean = nn.Linear(input_dim, output_dim)
+        if linear_encoding:
+            self._mean = nn.Linear(input_dim, output_dim)
+        else:
+            self._mean = mlp(input_dim, hidden_dim, output_dim, n_layers, activation, T=None)
         if deterministic:
             self._logvars = Zeros(device=device)
         else:
@@ -251,7 +254,7 @@ def estimate_mutual_information(estimator, x, y, critic_fn=None, baseline_fn=Non
 
 class CPIC(nn.Module):
     def __init__(self, xdim, ydim, mi_params, critic_params, baseline_params, T=4, beta=1e-3, beta1=1, beta2=1, hidden_dim=256,
-                 deterministic=False, init_weights=None, device='cuda:0', critic_params_YX=None, predictive_space="latent",
+                 deterministic=False, linear_encoding=True, init_weights=None, device='cuda:0', critic_params_YX=None, predictive_space="latent",
                  regularization_weight=0):
         super(CPIC, self).__init__()
 
@@ -263,7 +266,8 @@ class CPIC(nn.Module):
         self.ydim = ydim
         self.T = T
         self.deterministic = deterministic
-        self.encoder = StructuredEncoder(input_dim=xdim, output_dim=ydim, hidden_dim=hidden_dim, T=self.T, deterministic=deterministic, device=device)
+        self.linear_encoding = linear_encoding
+        self.encoder = StructuredEncoder(input_dim=xdim, output_dim=ydim, hidden_dim=hidden_dim, T=self.T, deterministic=deterministic, device=device, linear_encoding=linear_encoding)
         self.encoder.to(device)
         # initialize critic and baseline for I_compress, I_predictive
         if init_weights is not None:
@@ -346,10 +350,10 @@ def DCA_init(X, T, d, n_init=1, rng_or_seed=None):
 
 
 def train_CPIC(beta, xdim, ydim, mi_params, critic_params, baseline_params, num_epochs, train_loader, T=4, signiture=22,
-               deterministic=False, init_weights=None, num_early_stop=0, device="cuda:0", lr=1e-4, beta1=1, beta2=0,
+               deterministic=False, linear_encoding=True, init_weights=None, num_early_stop=0, device="cuda:0", lr=1e-4, beta1=1, beta2=0,
                critic_params_YX=None, predictive_space="latent", regularization_weight=0):
     model = CPIC(xdim, ydim, mi_params, critic_params, baseline_params, T=T, beta=beta, beta1=beta1, beta2=beta2,
-                 deterministic=deterministic, init_weights=init_weights, device=device, critic_params_YX=critic_params_YX,
+                 deterministic=deterministic, linear_encoding=linear_encoding, init_weights=init_weights, device=device, critic_params_YX=critic_params_YX,
                  predictive_space=predictive_space, regularization_weight=regularization_weight)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     if init_weights is not None:
@@ -372,7 +376,6 @@ def train_CPIC(beta, xdim, ydim, mi_params, critic_params, baseline_params, num_
         for x_past_batch, x_future_batch in train_loader:
             x_past_batch = x_past_batch.to(torch.float).to(device)
             x_future_batch = x_future_batch.to(torch.float).to(device)
-            # import pdb; pdb.set_trace()
             loss, I_compress_bound, I_predictive_bound = model(x_past_batch, x_future_batch)
             # if torch.isnan(loss):
             #     model(x_past_batch, x_future_batch, debug=True)
